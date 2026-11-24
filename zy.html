@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>LOVE</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: url("zybj.jpg") center no-repeat;
+    background-size: cover;
+    font-family: 'Times New Roman', serif;
+    padding: 10px;
+  }
+
+  /* 强制永远 2 列，手机也不换行 */
+  .box-wrap {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-width: 700px;
+    width: 100%;
+  }
+
+  /* 盒子固定等比例，手机自动缩小 */
+  .box, .box1 {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    background: rgba(255,255,255,0.4);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+  }
+
+  .box:hover, .box1:hover {
+    transform: scale(1.05);
+  }
+
+  /* 弹窗移动端自动适配，不溢出 */
+  .box.active {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90vw;
+    max-width: 460px;
+    height: 80vh;
+    max-height: 560px;
+    z-index: 999;
+    background: rgba(255,255,255,0.9);
+  }
+
+  .before{
+    display:block;
+    width:100%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+  }
+  .box.active .before{
+    display:none;
+  }
+  .after{
+    display:none;
+    padding: 20px;
+    max-height: 100%;
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+  .after::-webkit-scrollbar{
+    width: 6px;
+  }
+  .after::-webkit-scrollbar-thumb{
+    background: rgba(0,0,0,0.2);
+    border-radius: 3px;
+  }
+  .box.active .after{
+    display:block;
+    line-height:1.8;
+    font-size:16px;
+  }
+
+  /* 时间文字自适应 */
+  .time-box {
+    text-align: center;
+    color: white;
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.4s;
+  }
+  #today-date {
+    font-size: clamp(16px, 4vw, 26px);
+    opacity: 0.9;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+  #today-time {
+    font-size: clamp(22px, 6vw, 40px);
+    font-weight: bold;
+    margin-top: 4px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+  .centence {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color:#1A1A1A;
+    font-size: clamp(20px, 5vw, 32px);
+    font-weight: bold;
+    line-height: 1.6;
+    text-shadow: 0 0 12px rgba(100, 100, 160, 0.6);
+    display: none;
+    white-space: pre;
+  }
+
+  .bb{
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: clamp(20px, 5vw, 32px);
+    text-align: center;
+    color: #FEEBEB;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+  }
+
+/* 信封 */
+.line-envelope {
+  position: relative;
+  width: clamp(80px, 25vw, 120px);
+  height: clamp(60px, 18vw, 80px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom:6px;
+}
+.line-envelope .body {
+  position: absolute;
+  width: 100%;
+  height: 70%;
+  border: 2px solid rgba(255,255,255,0.7);
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+}
+.line-envelope .flap {
+  position: absolute;
+  top: 34%;
+  left: 0;
+  width: 100%;
+  height: 40%;
+}
+.line-envelope .flap::before {
+  content: '';
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  height: 32px;
+  border-left: 2px solid rgba(255,255,255,0.7);
+  border-right: 2px solid rgba(255,255,255,0.7);
+  border-top: 2px solid rgba(255,255,255,0.7);
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  background: transparent;
+}
+.line-envelope .lock-icon {
+  font-size: 20px;
+  color: rgba(255,255,255,0.85);
+  z-index: 2;
+  text-shadow: 0 0 8px rgba(255,255,255,0.4);
+  transition:all 0.3s;
+}
+
+.env-text {
+  font-size: 16px;
+  color: #fff;
+  font-weight: bold;
+  text-shadow: 1px 1px 4px rgba(0,0,0,0.3);
+  margin-bottom:8px;
+}
+
+.pwd-row{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  justify-content:center;
+  width:100%;
+  padding: 0 6px;
+}
+.pwd-input {
+  padding: 6px 10px;
+  width: 110px;
+  max-width: 45%;
+  text-align: center;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 14px;
+  outline: none;
+}
+.pwd-input::placeholder {
+  color: rgba(255,255,255,0.8);
+}
+.pwd-btn {
+  padding: 6px 12px;
+  border: 2px solid rgba(255,255,255,0.6);
+  border-radius: 6px;
+  background: rgba(255,255,255,0.15);
+  color: white;
+  font-size: 14px;
+  cursor: pointer;
+  white-space:nowrap;
+}
+.pwd-btn:hover {
+  background: rgba(255,255,255,0.25);
+}
+
+/* 播放器：手机自动缩小 */
+.gothic-player {
+    position: relative;
+    width: 88%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 
+        0 0 20px rgba(0, 0, 0, 0.9),
+        0 0 40px rgba(100, 100, 100, 0.3);
+    z-index: 5;
+}
+.background {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: #111;
+    filter: brightness(0.7) contrast(1.2);
+}
+.album-cover {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background-image: url('https://pic1.imgdb.cn/item/689770ce58cb8da5c8156f3c.jpg');
+    background-size: cover;
+    background-position: center;
+    box-shadow: 
+        0 0 15px rgba(0, 0, 0, 0.9),
+        0 0 30px rgba(0, 0, 0, 0.7);
+    border: 3px solid rgba(255, 255, 255, 0.1);
+    cursor: pointer;
+    transition: all 0.5s ease;
+    z-index: 5;
+}
+.album-cover:hover {
+    transform: translate(-50%, -50%) scale(1.05);
+}
+.song-info {
+    position: absolute;
+    top: 10%;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 5;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+}
+.song-title {
+    font-size: clamp(14px, 3.5vw, 18px);
+    letter-spacing: 2px;
+    margin-bottom: 4px;
+    font-weight: bold;
+    color: #fff;
+}
+.artist {
+    font-size: clamp(11px, 2.5vw, 13px);
+    letter-spacing: 1px;
+    opacity: 0.8;
+    color: #aaa;
+}
+.progress-container {
+    position: absolute;
+    bottom: 25%;
+    left: 10%;
+    right: 10%;
+    height: 3px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 2px;
+    overflow: hidden;
+    z-index: 5;
+}
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #888;
+    transition: width 0.1s linear;
+}
+.time-display {
+    position: absolute;
+    bottom: 28%;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 10%;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    z-index: 5;
+}
+.gothic-border {
+    position: absolute;
+    top: 0;
+    white-space: nowrap;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 1px solid rgba(255,255,255,0.1);
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8);
+    z-index: 4;
+}
+.vinyl-lines {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    background: 
+        repeating-radial-gradient(
+            circle at center,
+            rgba(0, 0, 0, 0.1) 0%,
+            rgba(0, 0, 0, 0.1) 5%,
+            transparent 5%,
+            transparent 10%
+        );
+    z-index: 0;
+}
+.rotating {
+    animation: rotate 20s linear infinite;
+}
+@keyframes rotate {
+    from { transform: translate(-50%, -50%) rotate(0deg); }
+    to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.controls {
+    position: absolute;
+    bottom: 10%;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    z-index: 5;
+}
+.control-btn {
+    width: 32px;
+    height: 32px;
+    background: rgba(0, 0, 0, 0.6);
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.control-btn i {
+    color: #fff;
+    font-size: 13px;
+}
+.control-btn:hover {
+    background: rgba(100, 100, 100, 0.5);
+    transform: scale(1.1);
+}
+
+/* 便签 */
+.note {
+    position: absolute;
+    background: rgba(255,255,255,0.8);
+    padding: 12px;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    font-size: 15px;
+    color: #333;
+    border-top: 3px solid;
+    display: none; 
+    opacity: 0; 
+    transition: opacity 0.5s ease;
+    z-index: 10; 
+    max-width: 180px;
+}
+.note:nth-child(1) { border-top-color: #409eff; }
+.note:nth-child(2) { border-top-color: #67c23a; }
+.note:nth-child(3) { border-top-color: #e6a23c; }
+.note:nth-child(4) { border-top-color: #f56c6c; }
+.note:nth-child(5) { border-top-color: #909399; }
+.note:nth-child(6) { border-top-color:blue;}
+.note:nth-child(7) { border-top-color:#cec3ff; }
+.note:nth-child(8) { border-top-color: #74b680; }
+.note:nth-child(9) { border-top-color: #dbf8f0; }
+.note:nth-child(10) { border-top-color: #f1e0be; }
+.note:nth-child(11) { border-top-color: #9acefc; }
+.note:nth-child(12) { border-top-color: #e9f2fb; }
+
+/* 爱心 */
+.heart {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 24 24' fill='%23ff6b9b'%3E%3Cpath d='M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z'/%3E%3C/svg%3E") no-repeat center;
+    background-size: contain;
+    opacity: 0;
+    animation: float 3s linear infinite;
+    z-index: 10; 
+}
+@keyframes float {
+    0% { opacity: 0; transform: translateY(100vh) scale(0.5); }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { opacity: 0; transform: translateY(-20px) scale(1.2); }
+}
+
+/* 烟花 */
+.firework {
+  position: absolute;
+  width: 6px;
+    height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  pointer-events: none;
+  z-index: 9999;
+}
+</style>
+</head>
+<body>
+
+<div class="box-wrap">
+  <div class="box1" id="timeBox">
+    <div class="time-box">
+      <div id="today-date">加载中...</div>
+      <div id="today-time">00:00:00</div>
+    </div>
+    <div class="centence" id="centence">
+Celebrate
+our
+520th day！
+    </div>
+  </div>
+
+  <div class="box" id="playerBox">
+    <div class="before">
+      <div class="gothic-player">
+        <div class="background"></div>
+        <div class="vinyl-lines"></div>
+        <div class="gothic-border"></div>
+        <div class="album-cover" id="albumCover"></div>
+        
+        <div class="song-info">
+          <div class="song-title" id="songTitle">Mind Games</div>
+          <div class="artist" id="artist">Sickick</div>
+        </div>
+
+        <div class="time-display">
+          <span id="currentTime">0:00</span>
+          <span id="duration">0:00</span>
+        </div>
+
+        <div class="progress-container">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="controls">
+          <div class="control-btn" id="prevBtn"><i class="fas fa-step-backward"></i></div>
+          <div class="control-btn" id="playBtn"><i class="fas fa-play" id="playIcon"></i></div>
+          <div class="control-btn" id="nextBtn"><i class="fas fa-step-forward"></i></div>
+        </div>
+
+        <audio id="audio" preload="auto" playsinline webkit-playsinline>
+      </div>
+    </div>
+
+    <div class="after">
+      <h3>正在播放</h3>
+      <p id="afterSong">Mind Games - Sickick</p>
+      <p>点击黑胶封面即可播放/暂停</p>
+    </div>
+  </div>
+
+  <div class="box" id="letterBox">
+    <div class="before">
+
+      <div class="line-envelope">
+        <div class="flap"></div>
+        <div class="body"></div>
+        <div class="lock-icon"><i class="fas fa-lock"></i></div>
+      </div>
+      <div class="env-text">神秘信件</div>
+      
+      <div class="pwd-row">
+        <input type="text" class="pwd-input" id="pwdInput" placeholder="我爱你">
+        <button class="pwd-btn" id="pwdBtn">验证</button>
+      </div>
+    </div>
+
+    <div class="after">
+      <p>To:我最最最喜欢的Elwma A</p>
+      <p>补一下我们520天的仪式感吧！🎉</p>
+		<p>其实我一直想给你做一个这种网页来着的，一直懒得开头，这下可以好好展示一下了！🕶</p>
+     <p>✏其实打这段字的时候，我有点紧张，因为想说的话有太多，但又怕表达得不够好，所以总而言之，言而总之，就当我写了个流水账吧。</p>
+	<p>我们已经在一起这么久了，在别人眼里都会是一件不可思议的事情，现在的我好像真的离不开你了，我好想你，真的真的很想你，你在和我聊天的时候我也很想，一分钟不理我，我就会很难受，但我知道这样是不对的，所以我一直都没有表现出来，但我有在改，就在这一长段里带过一下吧。每次看到你回我消息我是真的很开心，就算是没有话题，我也想和你就一直尬聊下去，比如你吃了什么，今天做了什么事，想把所有关于你的事全部都牢牢记在心里，只要是你。这样反思了一下，我觉得我对你的占有欲好像越来越高了。老公不在家一个人受的委屈有谁懂。😭</p>
+	<p>换个话题，说是补仪式，其实是那天根本没想到这个哈哈哈。那几天光想着要不要卡点给你过生日了，但实际好像连卡点都没卡上😅..玉米了。</p>
+	<p>好吧，咱俩好像该说的不该说的都已经说了，写这么大段就是想说：我真的很喜欢你，你一直都很好，不管是以什么形态，你是我遇到过的最好的人，我爱你，我想对你更好，再好一点。❤</p>
+      <br>
+      <p style="text-align:right">全世界最喜欢你的布✋</p>
+    </div>
+  </div>
+
+  <div class="box" id="showPopup">
+    <span class="bb">小惊喜<br>按下我吧</span>
+  </div>
+</div>
+
+<div class="note">我喜欢你！</div>
+<div class="note">你是全世界最好的小宝宝</div>
+<div class="note">我最爱你了</div>
+<div class="note">你值得我爱</div>
+<div class="note">我爱你</div>
+<div class="note">我好想你啊，你在做什么呢</div>
+<div class="note">不要太忙了，照顾好自己</div>
+<div class="note">多喝热水,少熬夜！</div>
+<div class="note">我好喜欢你吧</div>
+<div class="note">520天快乐！</div>
+<div class="note">我们会在一起很久的对吧</div>
+<div class="note">要健康快乐幸福</div>
+<div class="note">我真的很爱你</div>
+<div class="note">我离不开你了</div>
+
+<script>
+// 时间 + 烟花
+const timeBox = document.getElementById('timeBox');
+const timeBoxInner = document.querySelector('.time-box');
+const centence = document.getElementById('centence');
+let isShowText = false;
+
+timeBox.onclick = function (e) {
+  launchFireworks(e.clientX, e.clientY);
+  isShowText = !isShowText;
+  if (isShowText) {
+    timeBoxInner.style.display = 'none';
+    centence.style.display = 'block';
+  } else {
+    timeBoxInner.style.display = 'flex';
+    centence.style.display = 'none';
+  }
+};
+
+function launchFireworks(x, y) {
+  const colors = ['#fff', '#A9A9A9', '#555555', '#000000'];
+  for (let i = 0; i < 100; i++) {
+    const firework = document.createElement('div');
+    firework.className = 'firework';
+    firework.style.left = x + 'px';
+    firework.style.top = y + 'px';
+    firework.style.background = colors[Math.floor(Math.random() * colors.length)];
+    document.body.appendChild(firework);
+
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 2 + Math.random() * 4;
+    const lifetime = 800 + Math.random() * 400;
+    let opacity = 1;
+    let px = x, py = y;
+
+    const tick = setInterval(() => {
+      px += Math.cos(angle) * speed;
+      py += Math.sin(angle) * speed;
+      opacity -= 0.02;
+      if (opacity <= 0) {
+        clearInterval(tick);
+        firework.remove();
+      }
+      firework.style.left = px + 'px';
+      firework.style.top = py + 'px';
+      firework.style.opacity = opacity;
+    }, 20);
+    setTimeout(() => clearInterval(tick), lifetime);
+  }
+}
+
+// 信封密码
+const letterBox = document.getElementById('letterBox');
+const pwdInput = document.getElementById('pwdInput');
+const pwdBtn = document.getElementById('pwdBtn');
+const lockIcon = document.querySelector('.lock-icon i');
+let isUnlocked = false; 
+
+letterBox.onclick = function (e) {
+  if(isUnlocked){
+    this.classList.toggle('active');
+  }
+};
+
+function check() {
+  const v = pwdInput.value.trim();
+  if(v === "我爱你"){
+    isUnlocked = true;
+    lockIcon.classList.remove('fa-lock');
+    lockIcon.classList.add('fa-unlock');
+    letterBox.classList.add('active');
+  }else{
+    alert("密码错误");
+  }
+}
+
+pwdBtn.onclick = check;
+pwdInput.onkeyup = function(e){
+  if(e.key==='Enter') check();
+};
+
+// 播放器禁止弹窗
+document.querySelectorAll('.box').forEach(item => {
+  if(item.id === 'playerBox'){
+    item.onclick = null;
+  }
+});
+
+// 时间刷新
+function updateDateTime() {
+  let now = new Date();
+  let y = now.getFullYear();
+  let m = now.getMonth() + 1;
+  let d = now.getDate();
+  let hh = String(now.getHours()).padStart(2, '0');
+  let mm = String(now.getMinutes()).padStart(2, '0');
+  let ss = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById("today-date").innerText = y + "年" + m + "月" + d + "日";
+  document.getElementById("today-time").innerText = hh + ":" + mm + ":" + ss;
+}
+updateDateTime();
+setInterval(updateDateTime, 1000);
+
+// 惊喜弹窗
+const showBtn = document.getElementById('showPopup');
+const notes = document.querySelectorAll('.note');
+const body = document.body;
+
+showBtn.onclick = function() {
+  notes.forEach(note => { note.style.display = 'none'; note.style.opacity = 0; });
+  document.querySelectorAll('.heart').forEach(heart => heart.remove());
+
+  notes.forEach((note, index) => {
+    setTimeout(() => {
+      note.style.display = 'block';
+      const x = Math.random() * (window.innerWidth - 180);
+      const y = Math.random() * (window.innerHeight - 100);
+      note.style.left = x + 'px';
+      note.style.top = y + 'px';
+      note.style.width = 180 + Math.random() * 80 + 'px';
+      note.style.zIndex = 10 + index;
+      setTimeout(() => { note.style.opacity = 0.7 + Math.random() * 0.3; }, 100);
+      setTimeout(() => {
+        note.style.opacity = 0;
+        setTimeout(() => { note.style.display = 'none'; }, 500);
+      }, 3000);
+    }, index * 300);
+  });
+
+  function createHearts() {
+    let heartIndex = 0;
+    const heartInterval = setInterval(() => {
+      if (heartIndex >= 20) { clearInterval(heartInterval); return; }
+      const heart = document.createElement('div');
+      heart.className = 'heart';
+      heart.style.left = Math.random() * 100 + 'vw';
+      heart.style.animationDelay = Math.random() * 2 + 's';
+      heart.style.animationDuration = 3 + Math.random() * 2 + 's';
+      body.appendChild(heart);
+      setTimeout(() => { heart.remove(); }, 5000);
+      heartIndex++;
+    }, 200);
+  }
+  createHearts();
+}
+
+// ================== 音乐播放器（无限制自动播放）==================
+const playlist = [
+  {
+    title: "Only One伴奏",
+    artist: "BOA",
+    url: "onlyone.mp3",
+    cover: "O.jpg"
+  },
+  {
+    title: "爱你但说不出口伴奏",
+    artist: "Karencici",
+    url: "爱你但说不出口纯伴奏.mp3",
+    cover: "A.jpg"
+  },
+  {
+    title: "Magnetic伴奏",
+    artist: "ILLIT",
+    url: "Magnetic伴奏.mp3",
+    cover: "M.jpg"
+  },
+  {
+    title: "Falling U伴奏",
+    artist: "T-ara",
+    url: "FallingU伴奏.mp3",
+    cover: "F.jpg"
+  }
+];
+
+let currentIndex = 0;
+const audio = document.getElementById('audio');
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const albumCover = document.getElementById('albumCover');
+const progressBar = document.getElementById('progressBar');
+const currentTimeEl = document.getElementById('currentTime');
+const durationEl = document.getElementById('duration');
+
+// 移除所有手机限制，和电脑完全一致
+function loadSong(index) {
+  const song = playlist[index];
+  audio.src = song.url;
+  document.getElementById('songTitle').innerText = song.title;
+  document.getElementById('artist').innerText = song.artist;
+  document.getElementById('afterSong').innerText = song.title + " - " + song.artist;
+  albumCover.style.backgroundImage = `url(${song.cover})`;
+  progressBar.style.width = "0%";
+}
+
+function togglePlay() {
+  if (audio.paused) {
+    audio.play().then(() => {
+      playIcon.className = 'fas fa-pause';
+      albumCover.classList.add('rotating');
+    }).catch(err => {});
+  } else {
+    audio.pause();
+    playIcon.className = 'fas fa-play';
+    albumCover.classList.remove('rotating');
+  }
+}
+
+function prevSong() {
+  currentIndex = (currentIndex - 1 + playlist.length) % playlist.length;
+  loadSong(currentIndex);
+  setTimeout(() => togglePlay(), 100);
+}
+function nextSong() {
+  currentIndex = (currentIndex + 1) % playlist.length;
+  loadSong(currentIndex);
+  setTimeout(() => togglePlay(), 100);
+}
+
+albumCover.addEventListener('click', togglePlay);
+playBtn.addEventListener('click', togglePlay);
+document.getElementById('prevBtn').addEventListener('click', prevSong);
+document.getElementById('nextBtn').addEventListener('click', nextSong);
+
+audio.addEventListener('timeupdate', () => {
+  if (!audio.duration) return;
+  const percent = (audio.currentTime / audio.duration) * 100;
+  progressBar.style.width = percent + "%";
+  currentTimeEl.textContent = formatTime(audio.currentTime);
+  durationEl.textContent = formatTime(audio.duration);
+});
+
+function formatTime(seconds) {
+  if (isNaN(seconds)) return "0:00";
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s < 10 ? '0' : ''}${s}`;
+}
+
+audio.addEventListener('ended', nextSong);
+loadSong(currentIndex);
+</script>
+</body>
+</html>
