@@ -1,0 +1,104 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>我们的日子</title>
+	<style>
+	body{background-image: url("输入背景.jpg");
+			background-size: cover;
+			background-position: center;
+		display: flex;
+		align-items: center;
+		min-height: 100vh;
+		}
+	.box{
+    width: 550px;
+    height: 650px;
+    background: rgba(255,255,255,0.4);
+    margin: auto;
+    border-radius: 25px;
+	backdrop-filter:blur(5px);
+	padding-top: 20px;
+    padding-right: 50px;
+    padding-left: 50px;
+    padding-bottom: 6px;
+	font-size: 20px;
+	justify-content: center;
+	align-items: center;
+		text-align: center;
+		box-shadow: 0 4px 12px rgba(0,0,0,0.1)
+		}
+	.dl{
+		font-size:60px;
+		-webkit-text-stroke:1px #000;
+		margin-bottom: 20px;
+		color: rgba(0,0,0,0.19)
+		}
+		
+		.dl1{
+			background: #FFFFFF;
+			font-size: 30px;
+			font-weight: bold;
+		}
+  input{
+    width: 300px;
+	height: 45px;
+    padding: 10px;
+    margin: 8px 0;
+    border: none;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.7);
+    font-size: 25px;
+    box-sizing: border-box;
+  }
+
+  button{
+    width: 40%;
+    padding: 10px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 6px;
+    background: #fff;
+    color: black;
+    font-size: 30px;
+    cursor: pointer;
+  }
+		.zh{
+			font-size: 30px;
+		}
+	</style>
+</head><br>
+<div class="box"><br><br><span class="dl">登录</span>
+	<br>
+	<br>
+	<br>
+	<br>
+	<span class="zh">账号：</span><input type="text" id="username" placeholder="我们在一起的日子">
+	
+  <!-- 密码框里有提示词 -->
+	<br>
+	<br>
+	<br>
+  <span class="zh">密码：</span><input class="mm" type="password" id="pwd" placeholder="你的生日">
+	<br>
+	<br>
+	<br>
+  <span class="dl1" ><button  onclick="login()">登录</button></span>
+	
+	</div>
+<script>
+function login() {
+  let user = document.getElementById('username').value;
+  let pass = document.getElementById('pwd').value;
+
+  // 这里可以改账号密码
+  if (user === '20250617' && pass === '1119') {
+    window.location.href = 'zy.html';
+  } else {
+    alert('这都能记错！');
+  }
+}
+</script>
+<body>
+</body>
+</html>
